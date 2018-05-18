@@ -1,7 +1,4 @@
-// generate profiles of Make execution in callgrind format:
-// https://kcachegrind.github.io/html/CallgrindFormat.html
-// suitable for analysis in webgrind:
-// https://github.com/jokkedk/webgrind/
+// generate profiles of Make execution in SQLite format
 
 package main
 
