@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"math/rand"
 	"os"
 	"os/exec"
 	"strconv"
@@ -16,18 +17,22 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+const (
+	BACKOFF = 25
+)
+
 func main() {
 	// command-line options
 	// mprofile target
 	if len(os.Args) < 3 {
-		log.Fatal("insufficient number of command-line parameters", os.Args)
+		log.Fatal("insufficient number of command-line parameters: ", os.Args)
 	}
 	target := os.Args[1]
 	curdir := os.Args[2]
 
 	level, err := strconv.Atoi(os.Getenv("MAKELEVEL"))
 	if err != nil {
-		log.Fatal("could not identify recursive makefile depth:", err)
+		log.Fatal("could not identify recursive makefile depth: ", err)
 	}
 	// find the parent and grandparent pids so we can build the execution graph
 	pid := os.Getpid()
@@ -54,10 +59,17 @@ func main() {
 	if err != nil {
 		log.Fatalf("ERROR: opening SQLite DB %q, error: %s", fn, err)
 	}
-	// create the schema as needed
-	_, err = db.Exec("CREATE TABLE IF NOT EXISTS profile (level INTEGER, dir TEXT, pid INTEGER, ppid INTEGER, pppid INTEGER, target TEXT, started INTEGER, ended INTEGER, status TEXT, cmd TEXT)")
-	if err != nil {
-		log.Fatal("Could not create search table", err)
+	// create the schema as needed, we may need to spin if another process has
+	// the DB open at the same time
+	for {
+		_, err = db.Exec("CREATE TABLE IF NOT EXISTS profile (level INTEGER, dir TEXT, pid INTEGER, ppid INTEGER, pppid INTEGER, target TEXT, started INTEGER, ended INTEGER, status TEXT, cmd TEXT)")
+		if err != nil {
+			if err.Error() != "unable to open database file" {
+				log.Fatal("Could not create search table: ", err)
+			}
+			time.Sleep(time.Duration(rand.Intn(BACKOFF) * 1000000))
+		}
+		break
 	}
 	// open the actual shell that will run the commands
 	shell := exec.Command("/bin/sh", os.Args[3:len(os.Args)]...)
@@ -78,9 +90,12 @@ func main() {
 		cmdline = strings.Join(os.Args[3:len(os.Args)], " ")
 	}
 
-	_, err = db.Exec("INSERT INTO profile (level, dir, pid, ppid, pppid, target, started, ended, status, cmd) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", level, curdir, pid, ppid, pppid, target, before.UnixNano(), after.UnixNano(), status, cmdline)
-	if err != nil {
-		log.Fatal("Could not run insert statement: ", err)
+	for {
+		_, err = db.Exec("INSERT INTO profile (level, dir, pid, ppid, pppid, target, started, ended, status, cmd) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", level, curdir, pid, ppid, pppid, target, before.UnixNano(), after.UnixNano(), status, cmdline)
+		if err != nil {
+			log.Fatal("Could not run insert statement: ", err)
+		}
+		break
 	}
 	db.Close()
 }
