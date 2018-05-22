@@ -52,7 +52,8 @@ func main() {
 
 	level, err := strconv.Atoi(os.Getenv("MAKELEVEL"))
 	if err != nil {
-		log.Fatal("could not identify recursive makefile depth: ", err)
+		level = -1
+		//log.Fatal("could not identify recursive makefile depth: ", err)
 	}
 	// log.Println("FFFFFFFFFFFFFFFF MPROFILE: level ", level, " args: ", os.Args)
 
