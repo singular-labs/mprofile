@@ -78,7 +78,7 @@ func main() {
 	// open the actual shell that will run the commands
 	// log.Println("FFFFFFFFFFFFFFFF exec ", os.Args[2:len(os.Args)])
 	// XXX bash is not the One True (Bourne) Shell
-	shell := exec.Command("/bin/bash", os.Args[2:len(os.Args)]...)
+	shell := exec.Command("/bin/sh", os.Args[2:len(os.Args)]...)
 	// if running parallel makes (and in the post-Moore's law era of stagnating
 	// single-thread performance, shouldn't everyone?) background tasks that
 	// attempt to read from the terminal will be suspended with the message

@@ -39,7 +39,8 @@ i = 0
 g = 0
 targets = dict() # ppid:target -> group
 parents = dict() # p4id -> ppid:target
-parents 
+
+origin = prof[0]['started']
 for row in prof[:-1]:
   i += 1
   item = {
@@ -47,7 +48,7 @@ for row in prof[:-1]:
     'type': 'range',
     'title': row['cmd'],
     'content': str(row['ppid']) + ':' + row['target'],
-    'start': row['started'] * 1e-6,
+    'start': (row['started'] - origin) * 1e-6,
     'end': row['ended'] * 1e-6
   }
   # if row['p3id'] in targets:
